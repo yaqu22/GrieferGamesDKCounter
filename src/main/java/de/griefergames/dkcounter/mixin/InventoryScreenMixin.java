@@ -1,4 +1,5 @@
 
+
 package de.griefergames.dkcounter.mixin;
 
 import de.griefergames.dkcounter.DKCounterClient;
@@ -10,7 +11,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Formatting;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -20,8 +20,6 @@ import java.util.Map;
 
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin {
-    @Shadow protected int x;
-    @Shadow protected int y;
 
     @Inject(method = "render", at = @At("TAIL"))
     private void griefergamesdkcounter$renderTotals(
@@ -35,25 +33,24 @@ public abstract class InventoryScreenMixin {
 
         Map<Item, Long> totalsByItem = new LinkedHashMap<>();
 
-        // Hotbar und normales Inventar
         for (ItemStack stack : inv.getMainStacks()) {
             addStack(totalsByItem, stack, client);
         }
 
-        // Rüstung
         addStack(totalsByItem, player.getEquippedStack(EquipmentSlot.HEAD), client);
         addStack(totalsByItem, player.getEquippedStack(EquipmentSlot.CHEST), client);
         addStack(totalsByItem, player.getEquippedStack(EquipmentSlot.LEGS), client);
         addStack(totalsByItem, player.getEquippedStack(EquipmentSlot.FEET), client);
-
-        // Zweithand
         addStack(totalsByItem, player.getOffHandStack(), client);
 
-        int lineY = y + 6;
+        int screenX = (client.getWindow().getScaledWidth() - 176) / 2;
+        int screenY = (client.getWindow().getScaledHeight() - 166) / 2;
+        int lineY = screenY + 8;
+
         context.drawTextWithShadow(
                 client.textRenderer,
-                "GrieferGames – DK pro Block:",
-                x + 8, lineY, Formatting.GOLD.getColorValue()
+                "GrieferGames - DK pro Block:",
+                screenX + 8, lineY, Formatting.GOLD.getColorValue()
         );
         lineY += 12;
 
@@ -65,7 +62,7 @@ public abstract class InventoryScreenMixin {
             context.drawTextWithShadow(
                     client.textRenderer,
                     line,
-                    x + 8, lineY, Formatting.WHITE.getColorValue()
+                    screenX + 8, lineY, Formatting.WHITE.getColorValue()
             );
             lineY += 10;
         }
@@ -74,7 +71,7 @@ public abstract class InventoryScreenMixin {
             context.drawTextWithShadow(
                     client.textRenderer,
                     "Keine komprimierten Blöcke erkannt",
-                    x + 8, lineY, Formatting.GRAY.getColorValue()
+                    screenX + 8, lineY, Formatting.GRAY.getColorValue()
             );
         }
     }
@@ -98,3 +95,4 @@ public abstract class InventoryScreenMixin {
         });
     }
 }
+
