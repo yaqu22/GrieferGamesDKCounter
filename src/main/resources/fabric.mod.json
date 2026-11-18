@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "griefergames_dk_counter",
+  "version": "${version}",
+  "name": "GrieferGames DK Counter",
+  "description": "Reads GrieferGames 'Anzahl:' tooltip values and converts them into double chests, stacks and items.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "de.griefergames.dkcounter.DKCounterClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "mixins": [
+    "griefergames_dk_counter.mixins.json"
+  ]
+}
