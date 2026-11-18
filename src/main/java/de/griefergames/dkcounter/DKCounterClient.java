@@ -139,8 +139,8 @@ public final class DKCounterClient implements ClientModInitializer {
             out.append(items).append(" Items");
         }
         return out.toString();
-    }
-}
+    
 
-    }
-}
+
+    
+
