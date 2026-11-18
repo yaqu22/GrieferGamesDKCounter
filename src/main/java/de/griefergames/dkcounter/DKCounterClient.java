@@ -1,29 +1,107 @@
+
 package de.griefergames.dkcounter;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class DKCounterClient implements ClientModInitializer {
+
     public static final Pattern COUNT_PATTERN =
             Pattern.compile("(?i)Anzahl\\s*:\\s*([0-9][0-9.,'’ ]*)");
 
     @Override
     public void onInitializeClient() {
-        // The inventory-wide total is rendered by InventoryScreenMixin.
+        ScreenEvents.BEFORE_INIT.register((client, screen, width, height) -> {
+            if (screen instanceof InventoryScreen) {
+                ScreenEvents.afterRender(screen).register(
+                        (currentScreen, context, mouseX, mouseY, tickDelta) -> {
+                            renderTotals(context, client);
+                        }
+                );
+            }
+        });
     }
 
-    public static long readCompressedAmount(ItemStack stack, MinecraftClient client) {
+    private static void renderTotals(DrawContext context, MinecraftClient client) {
+        if (client.player == null) return;
+
+        var player = client.player;
+        var inv = player.getInventory();
+        Map<Item, Long> totals = new LinkedHashMap<>();
+
+        for (ItemStack stack : inv.getMainStacks()) {
+            addStack(totals, stack, client);
+        }
+
+        addStack(totals, player.getEquippedStack(EquipmentSlot.HEAD), client);
+        addStack(totals, player.getEquippedStack(EquipmentSlot.CHEST), client);
+        addStack(totals, player.getEquippedStack(EquipmentSlot.LEGS), client);
+        addStack(totals, player.getEquippedStack(EquipmentSlot.FEET), client);
+        addStack(totals, player.getOffHandStack(), client);
+
+        int x = (client.getWindow().getScaledWidth() - 176) / 2 + 180;
+        int y = (client.getWindow().getScaledHeight() - 166) / 2 + 8;
+
+        context.drawTextWithShadow(
+                client.textRenderer,
+                "GrieferGames - DK Counter",
+                x, y, Formatting.GOLD.getColorValue()
+        );
+
+        y += 14;
+
+        for (Map.Entry<Item, Long> entry : totals.entrySet()) {
+            String line = entry.getKey().getName().getString()
+                    + ": " + formatAmount(entry.getValue());
+
+            context.drawTextWithShadow(
+                    client.textRenderer,
+                    line, x, y, Formatting.WHITE.getColorValue()
+            );
+            y += 11;
+        }
+
+        if (totals.isEmpty()) {
+            context.drawTextWithShadow(
+                    client.textRenderer,
+                    "Keine komprimierten Blöcke",
+                    x, y, Formatting.GRAY.getColorValue()
+            );
+        }
+    }
+
+    private static void addStack(
+            Map<Item, Long> totals, ItemStack stack, MinecraftClient client
+    ) {
+        if (stack == null || stack.isEmpty()) return;
+
+        long amount = readCompressedAmount(stack, client);
+        if (amount > 0) {
+            totals.merge(stack.getItem(), amount, Long::sum);
+        }
+    }
+
+    public static long readCompressedAmount(
+            ItemStack stack, MinecraftClient client
+    ) {
         if (stack == null || stack.isEmpty() || client.player == null) return 0L;
 
         var tooltip = stack.getTooltip(
-                net.minecraft.item.Item.TooltipContext.create(client.world),
+                Item.TooltipContext.create(client.world),
                 client.player,
                 TooltipType.BASIC
         );
@@ -33,9 +111,9 @@ public final class DKCounterClient implements ClientModInitializer {
             if (matcher.find()) {
                 String digits = matcher.group(1).replaceAll("[^0-9]", "");
                 try {
-                    // If a slot contains multiple identical compressed blocks,
-                    // count the displayed amount once for each block.
-                    return Math.multiplyExact(Long.parseLong(digits), stack.getCount());
+                    return Math.multiplyExact(
+                            Long.parseLong(digits), stack.getCount()
+                    );
                 } catch (NumberFormatException | ArithmeticException ignored) {
                     return 0L;
                 }
@@ -45,14 +123,10 @@ public final class DKCounterClient implements ClientModInitializer {
     }
 
     public static String formatAmount(long total) {
-        // A DK is a double chest: 54 slots × 64 items = 3,456 items.
-        final long itemsPerStack = 64L;
-        final long itemsPerDoubleChest = 54L * itemsPerStack;
-
-        long dks = total / itemsPerDoubleChest;
-        long remainder = total % itemsPerDoubleChest;
-        long stacks = remainder / itemsPerStack;
-        long items = remainder % itemsPerStack;
+        long dks = total / 3456;
+        long remainder = total % 3456;
+        long stacks = remainder / 64;
+        long items = remainder % 64;
 
         StringBuilder out = new StringBuilder();
         if (dks > 0) out.append(dks).append(" DK");
@@ -65,5 +139,8 @@ public final class DKCounterClient implements ClientModInitializer {
             out.append(items).append(" Items");
         }
         return out.toString();
+    }
+}
+
     }
 }
