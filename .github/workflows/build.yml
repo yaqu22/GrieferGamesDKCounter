@@ -1,5 +1,6 @@
 
 
+
 name: Build GrieferGames DK Counter
 
 on:
@@ -26,12 +27,11 @@ jobs:
           gradle-version: '8.14.3'
 
       - name: Build mod
-        working-directory: ./GrieferGamesDKCounter
         run: gradle build
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: griefergames-dk-counter
-          path: GrieferGamesDKCounter/build/libs/*.jar
+          path: build/libs/*.jar
           if-no-files-found: error
